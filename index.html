@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f3f3ef">
+  <title>一件事 · 微启动</title>
+  <style>
+    :root { --paper:#f3f3ef; --ink:#191d1a; --muted:#858a86; --line:#d9ddd9; --accent:#385f50; --soft:#e0e9e3; }
+    * { box-sizing:border-box; }
+    html,body { margin:0; min-height:100%; background:var(--paper); color:var(--ink); }
+    body { font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans CJK SC",sans-serif; }
+    button,input,textarea { font:inherit; color:inherit; }
+    button { cursor:pointer; }
+    .app { width:min(100%,430px); min-height:100dvh; margin:auto; padding:max(20px,env(safe-area-inset-top)) 22px calc(28px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; }
+    header { min-height:44px; display:flex; align-items:center; justify-content:space-between; }
+    .mark { font-family:"Songti SC","STSong",serif; font-size:18px; font-weight:700; }
+    .quiet-button { min-width:44px; min-height:44px; margin-right:-10px; border:0; background:transparent; color:var(--muted); font-size:14px; }
+    .stage { flex:1; display:flex; flex-direction:column; justify-content:center; padding:32px 0; }
+    .task-name { margin:0 0 24px; color:var(--muted); font-size:13px; font-weight:650; line-height:1.6; }
+    .step-label { margin-bottom:12px; color:var(--accent); font-size:12px; font-weight:800; }
+    h1 { margin:0; font-family:"Songti SC","STSong",serif; font-size:clamp(38px,11vw,52px); line-height:1.3; letter-spacing:-.025em; }
+    .primary { width:100%; min-height:59px; border:0; border-radius:18px; color:#fff; background:var(--ink); font-weight:800; }
+    .secondary { min-height:50px; border:0; background:transparent; color:var(--muted); }
+    .idle { text-align:center; }
+    .idle h1 { font-size:42px; }
+    .idle p { margin:18px auto 0; max-width:280px; color:var(--muted); font-size:14px; line-height:1.8; }
+    .done-mark { width:54px; height:54px; margin:0 auto 22px; border-radius:50%; display:grid; place-items:center; color:#fff; background:var(--accent); font-size:24px; }
+    dialog { width:min(calc(100% - 28px),410px); max-height:86dvh; padding:0; border:0; border-radius:23px; background:#fff; box-shadow:0 24px 80px rgba(0,0,0,.2); }
+    dialog::backdrop { background:rgba(24,28,25,.42); backdrop-filter:blur(3px); }
+    .modal { padding:24px; }
+    .modal h2 { margin:0 0 7px; font-family:"Songti SC","STSong",serif; font-size:27px; }
+    .modal>p { margin:0 0 20px; color:var(--muted); font-size:13px; line-height:1.65; }
+    .field { margin-top:14px; }
+    .field label { display:block; margin-bottom:7px; font-size:13px; font-weight:750; }
+    .field input,.field textarea { width:100%; padding:0 13px; border:1px solid var(--line); border-radius:13px; background:#fff; outline:none; }
+    .field input { height:49px; }
+    .field textarea { min-height:96px; padding-top:12px; resize:none; line-height:1.6; }
+    .field input:focus,.field textarea:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--soft); }
+    .form-actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:20px; }
+    .form-actions button,.close-button { min-height:49px; border:1px solid var(--line); border-radius:13px; background:#fff; }
+    .form-actions .save { color:#fff; border-color:var(--accent); background:var(--accent); }
+    .menu-list { display:grid; gap:9px; }
+    .menu-list button { min-height:52px; padding:0 15px; border:1px solid var(--line); border-radius:14px; background:#fff; text-align:left; }
+    .close-button { width:100%; margin-top:18px; }
+    .toast { position:fixed; left:50%; bottom:30px; z-index:10; transform:translateX(-50%) translateY(8px); padding:11px 17px; border-radius:999px; color:#fff; background:var(--ink); opacity:0; pointer-events:none; transition:.2s; font-size:13px; }
+    .toast.show { opacity:1; transform:translateX(-50%); }
+    @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header><div class="mark">一件事</div><button class="quiet-button" id="topAction" aria-label="暂时离开"></button></header>
+    <section class="stage" id="stage"></section>
+    <button class="primary" id="primary"></button>
+    <button class="secondary" id="secondary"></button>
+  </main>
+
+  <dialog id="addDialog"><div class="modal">
+    <h2>放进一件事</h2><p>任务名称留给以后辨认；第一步写成此刻可以直接动手的动作。</p>
+    <form id="addForm">
+      <div class="field"><label for="taskTitle">这件事</label><input id="taskTitle" maxlength="50" required placeholder="例如：完善简历"></div>
+      <div class="field"><label for="firstStep">第一步</label><textarea id="firstStep" maxlength="100" placeholder="可以留空，系统会先让你打开需要用的东西"></textarea></div>
+      <div class="form-actions"><button type="button" data-close>取消</button><button class="save" type="submit">放进去</button></div>
+    </form>
+  </div></dialog>
+
+  <dialog id="menuDialog"><div class="modal">
+    <h2>一件事</h2><p>队列只负责保管，启动时不会展示整张清单。</p>
+    <div class="menu-list"><button id="addAnother">添加一件事</button><button id="exportJson">导出本地数据</button></div>
+    <button class="close-button" data-close>关闭</button>
+  </div></dialog>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const preparedTasks = [
+      {
+        id:"jeffrey-documentary", title:"问 Jeffrey 要免费纪录片网址",
+        steps:["打开微信。","在搜索框输入 Jeffrey。","进入和 Jeffrey 的聊天窗口。","输入：Jeffrey，你之前提到的免费纪录片网址方便发我一下吗？","看一遍称呼和语气。","发送消息。"],
+        smaller:["拿起手机，找到微信图标。","点一下顶部的搜索框。","只点开搜索结果里的 Jeffrey。","先把光标放进输入框。","只从头读到尾。","把手指放到发送按钮上。"]
+      },
+      {
+        id:"lemongrass-course", title:"与无忧的柠檬草商量课程取消或改期",
+        steps:["打开和无忧的柠檬草的聊天窗口。","看一眼原定课程的日期和时间。","输入：你好，我想和你商量一下原定课程，看看是否可以取消或改期。你最近哪些时间方便？","补上具体的原定时间。","看一遍语气。","发送消息。"],
+        smaller:["打开常用的聊天应用。","只找到最近一次提到课程时间的消息。","先把光标放进输入框。","只复制原定日期和时间。","从第一句话慢慢读一遍。","把手指放到发送按钮上。"]
+      },
+      {
+        id:"minmin-reschedule", title:"与闵闵商量改期",
+        steps:["打开和闵闵的聊天窗口。","确认原来的时间。","想出一个自己可以接受的新时间范围。","输入：我想和你商量一下改期，原来的时间我可能不太方便。你看改到___可以吗？","把空白处换成具体时间。","发送消息。"],
+        smaller:["打开常用的聊天应用。","只找到最近一次提到时间的消息。","打开日历，只看明天之后的空档。","先把光标放进输入框。","只填写一个时间。","把手指放到发送按钮上。"]
+      },
+      {
+        id:"csmar-bond", title:"在 CSMAR 模拟赛卖出国债",
+        steps:["打开 CSMAR 模拟赛页面。","进入自己的持仓页面。","找到国债持仓。","打开卖出界面。","核对国债名称、数量和价格。","提交模拟卖出。","确认持仓或成交记录已经更新。"],
+        smaller:["只打开浏览器或比赛应用。","只找到写着“持仓”的入口。","只在列表里找到名称含国债的那一行。","只点一下对应的交易入口。","先逐字看国债名称。","把手指放到确认按钮上。","只刷新一次持仓页面。"]
+      }
+    ];
+
+    const STORAGE_KEY="one-thing-v2";
+    const initialState=()=>({queue:preparedTasks.map(task=>({...task,index:0})),activeId:null,pausedId:null,mode:"ready",completed:[]});
+    function loadState(){
+      try{
+        const saved=JSON.parse(localStorage.getItem(STORAGE_KEY));
+        if(!saved)return initialState();
+        const known=new Set(saved.queue.map(task=>task.id));
+        preparedTasks.forEach(task=>{if(!known.has(task.id)&&!saved.completed.includes(task.id))saved.queue.push({...task,index:0});});
+        return saved;
+      }catch{return initialState();}
+    }
+    const state=loadState();
+    const $=id=>document.getElementById(id);
+    const activeTask=()=>state.queue.find(task=>task.id===state.activeId)||null;
+    const save=()=>localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
+    const currentStep=task=>task.steps[task.index];
+    const currentSmaller=task=>task.smaller?.[task.index]||"把完成这一步要用的应用、文件或物品打开。";
+
+    function render(){
+      const task=activeTask();
+      if(state.mode==="finished")renderFinished();
+      else if(task)renderStep(task);
+      else renderReady();
+      save();
+    }
+    function renderReady(){
+      $("stage").innerHTML='<div class="idle"><h1>此刻，只拿一件事</h1><p>其他内容留在看不见的地方。你主动开始时，才取出一件。</p></div>';
+      $("primary").textContent=state.queue.length?"取出一件事":"放进一件事";
+      $("secondary").textContent=state.queue.length?"写下另一件事":"";
+      $("secondary").hidden=!state.queue.length;
+      $("topAction").textContent="···"; $("topAction").setAttribute("aria-label","打开菜单");
+    }
+    function renderStep(task){
+      $("stage").innerHTML=`<p class="task-name">${escapeHtml(task.title)}</p><div class="step-label">现在只做</div><h1>${escapeHtml(currentStep(task))}</h1>`;
+      $("primary").textContent="完成这一小步";
+      $("secondary").textContent="这一步还太大"; $("secondary").hidden=false;
+      $("topAction").textContent="退出"; $("topAction").setAttribute("aria-label","暂时离开当前任务");
+    }
+    function renderFinished(){
+      $("stage").innerHTML='<div class="idle"><div class="done-mark">✓</div><h1>这件事走完了</h1><p>页面停在这里。下一件事不会自己出现。</p></div>';
+      $("primary").textContent="到这里"; $("secondary").textContent=""; $("secondary").hidden=true; $("topAction").textContent="";
+    }
+
+    $("primary").addEventListener("click",()=>{
+      const task=activeTask();
+      if(state.mode==="finished"){state.mode="ready";state.activeId=null;render();return;}
+      if(!task){
+        if(!state.queue.length){$("addDialog").showModal();return;}
+        state.activeId=state.pausedId&&state.queue.some(item=>item.id===state.pausedId)?state.pausedId:state.queue[0].id;
+        state.pausedId=null;state.mode="step";render();return;
+      }
+      task.index+=1;
+      if(task.index>=task.steps.length){state.completed.push(task.id);state.queue=state.queue.filter(item=>item.id!==task.id);state.mode="finished";}
+      render();
+    });
+
+    $("secondary").addEventListener("click",()=>{
+      const task=activeTask();
+      if(!task){$("addDialog").showModal();return;}
+      task.steps.splice(task.index,0,currentSmaller(task));
+      task.smaller.splice(task.index,0,"把手放到需要使用的应用、文件或物品上。");
+      render(); toast("这一小步已经再缩小");
+    });
+
+    $("topAction").addEventListener("click",()=>{
+      if(activeTask()){state.pausedId=state.activeId;state.activeId=null;state.mode="ready";render();return;}
+      $("menuDialog").showModal();
+    });
+
+    $("addForm").addEventListener("submit",event=>{
+      event.preventDefault();
+      const title=$("taskTitle").value.trim();
+      const first=$("firstStep").value.trim()||"打开完成这件事需要用到的应用、文件或物品。";
+      const task={id:`custom-${Date.now()}`,title,steps:[first,"找到和这件事直接相关的位置。","只做一个最小改变。"],smaller:["把手放到需要使用的应用、文件或物品上。","只打开相关页面或拿出相关物品。","让这个改变小到一分钟内可以结束。"],index:0};
+      state.queue.push(task); state.activeId=task.id; state.mode="step"; event.target.reset(); $("addDialog").close(); render();
+    });
+
+    $("addAnother").addEventListener("click",()=>{$("menuDialog").close();$("addDialog").showModal();});
+    $("exportJson").addEventListener("click",()=>{
+      const payload={app:"一件事",version:2,exportedAt:new Date().toISOString(),queue:state.queue,activeId:state.activeId,completed:state.completed};
+      const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+      const url=URL.createObjectURL(blob); const link=document.createElement("a"); link.href=url; link.download="一件事-本地数据.json"; link.click(); setTimeout(()=>URL.revokeObjectURL(url),1000); toast("本地数据已经导出");
+    });
+
+    document.querySelectorAll("[data-close]").forEach(button=>button.addEventListener("click",()=>button.closest("dialog").close()));
+    document.querySelectorAll("dialog").forEach(dialog=>dialog.addEventListener("click",event=>{if(event.target===dialog)dialog.close();}));
+    function escapeHtml(value){return String(value).replace(/[&<>'"]/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[char]));}
+    let toastTimer; function toast(message){$("toast").textContent=message;$("toast").classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>$("toast").classList.remove("show"),1800);}
+    render();
+  </script>
+</body>
+</html>
