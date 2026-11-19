@@ -76,33 +76,33 @@
   <script>
     const preparedTasks = [
       {
-        id:"jeffrey-documentary", title:"问 Jeffrey 要免费纪录片网址",
-        steps:["打开微信。","在搜索框输入 Jeffrey。","进入和 Jeffrey 的聊天窗口。","输入：Jeffrey，你之前提到的免费纪录片网址方便发我一下吗？","看一遍称呼和语气。","发送消息。"],
-        smaller:["拿起手机，找到微信图标。","点一下顶部的搜索框。","只点开搜索结果里的 Jeffrey。","先把光标放进输入框。","只从头读到尾。","把手指放到发送按钮上。"]
+        id:"csmar-14d-bond", title:"在 CSMAR 模拟赛卖出 14 天期国债",
+        steps:["打开 CSMAR 模拟赛页面。","进入自己的持仓页面。","找到 14 天期国债。","打开对应的卖出界面。","核对国债名称、数量和模拟价格。","提交模拟卖出。","确认成交记录或持仓已经更新。"],
+        smaller:["只打开浏览器或比赛应用。","只找到写着“持仓”的入口。","只在列表里寻找期限为 14 天的国债。","只点一下对应的交易入口。","先逐字看一遍国债名称。","把手放到确认按钮上。","只刷新一次成交或持仓页面。"]
       },
       {
-        id:"lemongrass-course", title:"与无忧的柠檬草商量课程取消或改期",
-        steps:["打开和无忧的柠檬草的聊天窗口。","看一眼原定课程的日期和时间。","输入：你好，我想和你商量一下原定课程，看看是否可以取消或改期。你最近哪些时间方便？","补上具体的原定时间。","看一遍语气。","发送消息。"],
-        smaller:["打开常用的聊天应用。","只找到最近一次提到课程时间的消息。","先把光标放进输入框。","只复制原定日期和时间。","从第一句话慢慢读一遍。","把手指放到发送按钮上。"]
+        id:"offerlink-profile-copy", title:"把 OfferLink 里的个人信息复制到电脑",
+        steps:["在电脑上打开 OfferLink。","进入个人信息或个人资料页面。","打开 Obsidian 中用于网申信息的本地笔记。","先复制一个信息区块。","继续逐块复制其余可复用信息。","对照 OfferLink 检查一项容易出错的字段。","确认笔记已经保存在本地。"],
+        smaller:["只打开浏览器。","只找到个人头像或个人资料入口。","只打开 Obsidian，不整理目录。","只复制当前看见的第一项。","每次只复制一个区块。","只检查日期、号码或英文拼写中的一项。","看见 Obsidian 已保存的状态即可。"]
       },
       {
-        id:"minmin-reschedule", title:"与闵闵商量改期",
-        steps:["打开和闵闵的聊天窗口。","确认原来的时间。","想出一个自己可以接受的新时间范围。","输入：我想和你商量一下改期，原来的时间我可能不太方便。你看改到___可以吗？","把空白处换成具体时间。","发送消息。"],
-        smaller:["打开常用的聊天应用。","只找到最近一次提到时间的消息。","打开日历，只看明天之后的空档。","先把光标放进输入框。","只填写一个时间。","把手指放到发送按钮上。"]
-      },
-      {
-        id:"csmar-bond", title:"在 CSMAR 模拟赛卖出国债",
-        steps:["打开 CSMAR 模拟赛页面。","进入自己的持仓页面。","找到国债持仓。","打开卖出界面。","核对国债名称、数量和价格。","提交模拟卖出。","确认持仓或成交记录已经更新。"],
-        smaller:["只打开浏览器或比赛应用。","只找到写着“持仓”的入口。","只在列表里找到名称含国债的那一行。","只点一下对应的交易入口。","先逐字看国债名称。","把手指放到确认按钮上。","只刷新一次持仓页面。"]
+        id:"ctrip-star-story", title:"用 STAR 法则写清一件携程实习工作",
+        steps:["打开最近的工作记录或相关文档。","只选一件自己实际参与过的工作。","写下 S：当时的背景和问题。","写下 T：你负责的具体目标。","写下 A：你亲自采取的两到三个动作。","写下 R：已经发生的结果或可核实证据。","把暂时不知道的数据标成待补，不猜数字。"],
+        smaller:["只打开最容易找到的一份工作材料。","只圈出一个动作词。","先写“当时……”这一句。","先写“我需要……”这一句。","只写第一个由你完成的动作。","先写一个能确认的变化、反馈或产物。","在不确定的位置写“待补证据”。"]
       }
     ];
 
     const STORAGE_KEY="one-thing-v2";
+    const retiredTaskIds=new Set(["jeffrey-documentary","lemongrass-course","minmin-reschedule","csmar-bond"]);
     const initialState=()=>({queue:preparedTasks.map(task=>({...task,index:0})),activeId:null,pausedId:null,mode:"ready",completed:[]});
     function loadState(){
       try{
         const saved=JSON.parse(localStorage.getItem(STORAGE_KEY));
         if(!saved)return initialState();
+        saved.queue=(saved.queue||[]).filter(task=>!retiredTaskIds.has(task.id));
+        saved.completed=saved.completed||[];
+        if(retiredTaskIds.has(saved.activeId)){saved.activeId=null;saved.mode="ready";}
+        if(retiredTaskIds.has(saved.pausedId))saved.pausedId=null;
         const known=new Set(saved.queue.map(task=>task.id));
         preparedTasks.forEach(task=>{if(!known.has(task.id)&&!saved.completed.includes(task.id))saved.queue.push({...task,index:0});});
         return saved;
